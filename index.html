@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rendimento Check</title>
   
+  <!-- Ícone de Raiozinho na Aba do Navegador (Favicon) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
   <!-- SheetJS para exportação em Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
@@ -32,6 +35,7 @@
       --crimson: #ff0055;
       --crimson-glow: rgba(255, 0, 85, 0.4);
       --blue: #3b82f6;
+      --slate: #64748b;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -197,13 +201,25 @@
       font-weight: 700;
       letter-spacing: 1px;
       text-transform: uppercase;
-      padding: 11px 22px;
+      padding: 11px 20px;
       border-radius: 6px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       transition: all 0.25s;
+    }
+
+    .btn-reset {
+      background: rgba(100, 116, 139, 0.15);
+      border: 1px solid var(--slate);
+      color: #cbd5e1;
+    }
+
+    .btn-reset:hover {
+      background: var(--slate);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(148, 163, 184, 0.5);
     }
 
     .btn-scan {
@@ -476,11 +492,14 @@
     <textarea id="ipList" rows="4" placeholder="Inserir os IP's (Ex: 187.122.58.197, 8.8.8.8, 1.1.1.1)"></textarea>
     
     <div class="action-bar">
+      <button id="btnInicio" class="btn-reset" onclick="resetarAplicacao()">
+        <span>🔄</span> Início
+      </button>
       <button id="btnConsultar" class="btn-scan" onclick="consultarIPs()">
         <span>⚡</span> Executar Varredura
       </button>
       <button id="btnExtrair" class="btn-clean" onclick="extrairELimparIPs()">
-        <span>🧹</span> Extrair / Limpar IPs
+        <span>🧹</span> Limpar IPS
       </button>
       <button id="btnExcel" class="btn-excel" onclick="exportarExcel()" disabled>
         <span>📊</span> Exportar Relatório (.xlsx)
@@ -527,6 +546,19 @@ function obterListaIPsValidos(texto) {
   const ipRegex = /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g;
   const encontrados = texto.match(ipRegex) || [];
   return [...new Set(encontrados)];
+}
+
+function resetarAplicacao() {
+  document.getElementById("ipList").value = "";
+  document.getElementById("resultados").innerHTML = "";
+  
+  const statusDiv = document.getElementById("status");
+  statusDiv.style.display = "none";
+  statusDiv.innerText = "";
+
+  dadosConsultados = [];
+  document.getElementById("btnExcel").disabled = true;
+  document.getElementById("btnConsultar").disabled = false;
 }
 
 function extrairELimparIPs() {
@@ -603,7 +635,6 @@ async function consultarIPs() {
     statusDiv.innerText = `[PROCESSO INICIADO] Consultando ${concluidos} de ${ips.length} IP(s)...`;
   }
 
-  // Ordenação: IPs com mais denúncias primeiro (Decrescente)
   dadosConsultados.sort((a, b) => (b.totalReports || 0) - (a.totalReports || 0));
 
   resContainer.innerHTML = "";
@@ -726,7 +757,6 @@ function exportarExcel() {
 
   const wb = XLSX.utils.book_new();
 
-  // 1. Resumo por IP
   const dadosResumo = dadosValidos.map(d => {
     let nivelAlerta = "Seguro";
     if (d.totalReports >= 1 && d.totalReports <= 2) nivelAlerta = "Atenção";
@@ -749,7 +779,6 @@ function exportarExcel() {
   const wsResumo = XLSX.utils.json_to_sheet(dadosResumo);
   XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo por IP");
 
-  // 2. Denúncias Detalhadas
   const dadosDetalhados = [];
   dadosValidos.forEach(d => {
     if (d.reports && d.reports.length > 0) {
