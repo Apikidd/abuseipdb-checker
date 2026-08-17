@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rendimento Check | Cyber Threat Intelligence</title>
+  <title>Rendimento Check</title>
   
   <!-- SheetJS para exportação em Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -61,6 +61,8 @@
       margin-bottom: 25px;
       border-bottom: 1px solid var(--border-cyan);
       position: relative;
+      flex-wrap: wrap;
+      gap: 12px;
     }
     
     .app-header::after {
@@ -84,6 +86,27 @@
       align-items: center;
       gap: 12px;
       text-transform: uppercase;
+    }
+
+    .hud-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .quota-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--amber);
+      background: rgba(255, 184, 0, 0.08);
+      border: 1px solid var(--amber);
+      padding: 6px 14px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 8px var(--amber-glow);
     }
 
     .system-status {
@@ -114,7 +137,7 @@
       50% { opacity: 0.3; transform: scale(0.85); }
     }
 
-    /* Painel de Controle Principal */
+    /* Painel de Controle */
     .control-panel {
       background: var(--panel-bg);
       backdrop-filter: blur(14px);
@@ -156,20 +179,25 @@
       box-shadow: 0 0 12px var(--cyan-glow);
     }
 
+    textarea::placeholder {
+      color: #475569;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
     .action-bar {
       margin-top: 16px;
       display: flex;
-      gap: 14px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     button {
       font-family: 'Orbitron', sans-serif;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       letter-spacing: 1px;
       text-transform: uppercase;
-      padding: 12px 26px;
+      padding: 11px 22px;
       border-radius: 6px;
       cursor: pointer;
       display: inline-flex;
@@ -191,6 +219,18 @@
       box-shadow: 0 0 20px var(--cyan);
     }
 
+    .btn-clean {
+      background: rgba(255, 184, 0, 0.12);
+      border: 1px solid var(--amber);
+      color: #fef08a;
+    }
+
+    .btn-clean:hover {
+      background: var(--amber);
+      color: #000;
+      box-shadow: 0 0 16px var(--amber-glow);
+    }
+
     .btn-excel {
       background: rgba(59, 130, 246, 0.15);
       border: 1px solid var(--blue);
@@ -205,12 +245,12 @@
 
     button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-    /* Barra de Status de Varredura */
+    /* Barra de Status */
     #status {
       font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
       margin-bottom: 18px;
-      padding: 8px 14px;
+      padding: 10px 16px;
       border-radius: 6px;
       display: none;
     }
@@ -255,7 +295,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* Badges de Status Futuristas */
+    /* Badges */
     .badge {
       font-family: 'Orbitron', sans-serif;
       font-size: 11px;
@@ -296,7 +336,7 @@
       50% { box-shadow: 0 0 22px var(--crimson); }
     }
 
-    /* Mini-Widgets de Metadados */
+    /* Widgets de Metadados */
     .meta-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -417,9 +457,14 @@
   <!-- HUD Top Header -->
   <header class="app-header">
     <h1><span style="color:var(--cyan)">⚡</span> Rendimento Check</h1>
-    <div class="system-status">
-      <div class="status-dot"></div>
-      SOC ENGINE ACTIVE
+    <div class="hud-info">
+      <div class="quota-badge">
+        <span>⚠️</span> LIMITE: 1.000 REQUISIÇÕES/DIA
+      </div>
+      <div class="system-status">
+        <div class="status-dot"></div>
+        SOC ENGINE ACTIVE
+      </div>
     </div>
   </header>
 
@@ -428,11 +473,14 @@
     <div class="panel-label">
       <span>🎯</span> Vetores de Consulta IP
     </div>
-    <textarea id="ipList" rows="3" placeholder="Insira os IPs (ex: 187.122.58.197, 8.8.8.8, 1.1.1.1)">187.122.58.197, 8.8.8.8</textarea>
+    <textarea id="ipList" rows="4" placeholder="Inserir os IP's (Ex: 187.122.58.197, 8.8.8.8, 1.1.1.1)"></textarea>
     
     <div class="action-bar">
       <button id="btnConsultar" class="btn-scan" onclick="consultarIPs()">
         <span>⚡</span> Executar Varredura
+      </button>
+      <button id="btnExtrair" class="btn-clean" onclick="extrairELimparIPs()">
+        <span>🧹</span> Extrair / Limpar IPs
       </button>
       <button id="btnExcel" class="btn-excel" onclick="exportarExcel()" disabled>
         <span>📊</span> Exportar Relatório (.xlsx)
@@ -475,6 +523,31 @@ const CATEGORIAS_PT = {
 
 let dadosConsultados = [];
 
+function obterListaIPsValidos(texto) {
+  const ipRegex = /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g;
+  const encontrados = texto.match(ipRegex) || [];
+  return [...new Set(encontrados)];
+}
+
+function extrairELimparIPs() {
+  const txtArea = document.getElementById("ipList");
+  const ips = obterListaIPsValidos(txtArea.value);
+  const statusDiv = document.getElementById("status");
+
+  if (!ips.length) {
+    alert("Nenhum endereço IP válido foi encontrado no texto.");
+    return;
+  }
+
+  txtArea.value = ips.join(", ");
+  
+  statusDiv.style.display = "block";
+  statusDiv.style.background = "rgba(255, 184, 0, 0.1)";
+  statusDiv.style.border = "1px solid var(--amber)";
+  statusDiv.style.color = "var(--amber)";
+  statusDiv.innerText = `[FILTRAGEM CONCLUÍDA] ${ips.length} IP(s) válidos extraídos e organizados com sucesso.`;
+}
+
 async function consultarIPs() {
   const rawInput = document.getElementById("ipList").value.trim();
   const statusDiv = document.getElementById("status");
@@ -482,9 +555,9 @@ async function consultarIPs() {
   const btn = document.getElementById("btnConsultar");
   const btnExcel = document.getElementById("btnExcel");
 
-  const ips = rawInput.split(/[\s,;]+/).filter(Boolean);
+  const ips = obterListaIPsValidos(rawInput);
   if (!ips.length) {
-    alert("Insira pelo menos um endereço IP.");
+    alert("Insira pelo menos um endereço IP válido.");
     return;
   }
 
@@ -497,7 +570,9 @@ async function consultarIPs() {
   statusDiv.style.background = "rgba(0, 240, 255, 0.1)";
   statusDiv.style.border = "1px solid var(--cyan)";
   statusDiv.style.color = "var(--cyan)";
-  statusDiv.innerText = `[PROCESSO INICIADO] Varrendo inteligência de ${ips.length} IP(s)...`;
+  statusDiv.innerText = `[PROCESSO INICIADO] Consultando 0 de ${ips.length} IP(s)...`;
+
+  let concluidos = 0;
 
   for (const ip of ips) {
     try {
@@ -516,24 +591,42 @@ async function consultarIPs() {
 
       const json = await response.json();
       dadosConsultados.push(json.data);
-      renderizarCard(json.data);
     } catch (err) {
+      dadosConsultados.push({
+        ipAddress: ip,
+        totalReports: -1,
+        erro: err.message
+      });
+    }
+
+    concluidos++;
+    statusDiv.innerText = `[PROCESSO INICIADO] Consultando ${concluidos} de ${ips.length} IP(s)...`;
+  }
+
+  // Ordenação: IPs com mais denúncias primeiro (Decrescente)
+  dadosConsultados.sort((a, b) => (b.totalReports || 0) - (a.totalReports || 0));
+
+  resContainer.innerHTML = "";
+  dadosConsultados.forEach(d => {
+    if (d.erro) {
       resContainer.innerHTML += `
         <div class="ip-box danger-border">
-          <strong style="color: var(--crimson); font-family: 'JetBrains Mono';">[FALHA: ${ip}]</strong> 
-          <span style="color: #94a3b8;">${err.message}</span>
+          <strong style="color: var(--crimson); font-family: 'JetBrains Mono';">[FALHA: ${d.ipAddress}]</strong> 
+          <span style="color: #94a3b8;">${d.erro}</span>
         </div>
       `;
+    } else {
+      renderizarCard(d);
     }
-  }
+  });
 
   statusDiv.style.background = "rgba(0, 255, 157, 0.1)";
   statusDiv.style.border = "1px solid var(--green)";
   statusDiv.style.color = "var(--green)";
-  statusDiv.innerText = `[CONCLUÍDO] Análise finalizada com sucesso.`;
+  statusDiv.innerText = `[CONCLUÍDO] ${dadosConsultados.length} IP(s) analisados e ordenados por volume de denúncias.`;
   btn.disabled = false;
   
-  if (dadosConsultados.length > 0) {
+  if (dadosConsultados.some(d => !d.erro)) {
     btnExcel.disabled = false;
   }
 }
@@ -618,7 +711,7 @@ function renderizarCard(d) {
         <div class="meta-item"><span>Domínio</span><strong>${d.domain || 'N/A'}</strong></div>
         <div class="meta-item"><span>País / Região</span><strong>${d.countryName || 'N/A'} (${d.countryCode || 'N/A'})</strong></div>
         <div class="meta-item"><span>Score de Confiança</span><strong style="color:var(--cyan);">${d.abuseConfidenceScore}%</strong></div>
-        <div class="meta-item"><span>Fontes Distintas</span><strong>${d.numDistinctUsers}</strong></div>
+        <div class="meta-item"><span>Fontes Distintas</span><strong>${d.numDistinctUsers || 0}</strong></div>
       </div>
       ${reportsSectionHtml}
     </div>
@@ -628,12 +721,13 @@ function renderizarCard(d) {
 }
 
 function exportarExcel() {
-  if (!dadosConsultados.length) return;
+  const dadosValidos = dadosConsultados.filter(d => !d.erro);
+  if (!dadosValidos.length) return;
 
   const wb = XLSX.utils.book_new();
 
   // 1. Resumo por IP
-  const dadosResumo = dadosConsultados.map(d => {
+  const dadosResumo = dadosValidos.map(d => {
     let nivelAlerta = "Seguro";
     if (d.totalReports >= 1 && d.totalReports <= 2) nivelAlerta = "Atenção";
     else if (d.totalReports > 2) nivelAlerta = "Urgência";
@@ -657,7 +751,7 @@ function exportarExcel() {
 
   // 2. Denúncias Detalhadas
   const dadosDetalhados = [];
-  dadosConsultados.forEach(d => {
+  dadosValidos.forEach(d => {
     if (d.reports && d.reports.length > 0) {
       d.reports.forEach(r => {
         const catNomes = (r.categories || []).map(c => CATEGORIAS_PT[c] || `Cat ${c}`).join("; ");
