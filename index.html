@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rendimento Check | Cyber Threat Intelligence</title>
+  
+  <!-- SheetJS para exportação em Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <!-- Tipografia Futurista -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #06090e;
+      --panel-bg: rgba(13, 19, 33, 0.75);
+      --card-bg: rgba(16, 24, 40, 0.85);
+      --card-inner: #090e17;
+      --border-cyan: rgba(0, 240, 255, 0.25);
+      --border-glow: rgba(0, 240, 255, 0.6);
+      --text-main: #94a3b8;
+      --text-bright: #f8fafc;
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.35);
+      --green: #00ff9d;
+      --green-glow: rgba(0, 255, 157, 0.3);
+      --amber: #ffb800;
+      --amber-glow: rgba(255, 184, 0, 0.3);
+      --crimson: #ff0055;
+      --crimson-glow: rgba(255, 0, 85, 0.4);
+      --blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(121, 40, 202, 0.08) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
+      color: var(--text-main);
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    /* Topo / Header HUD */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      margin-bottom: 25px;
+      border-bottom: 1px solid var(--border-cyan);
+      position: relative;
+    }
+    
+    .app-header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 140px;
+      height: 2px;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--text-bright);
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-transform: uppercase;
+    }
+
+    .system-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--green);
+      background: rgba(0, 255, 157, 0.08);
+      border: 1px solid var(--green);
+      padding: 6px 14px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 8px var(--green-glow);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.85); }
+    }
+
+    /* Painel de Controle Principal */
+    .control-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-cyan);
+      border-radius: 12px;
+      padding: 22px;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 240, 255, 0.03);
+    }
+
+    .panel-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: rgba(5, 8, 15, 0.95);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: #fff;
+      padding: 14px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      resize: vertical;
+      transition: all 0.3s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    .action-bar {
+      margin-top: 16px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 12px 26px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s;
+    }
+
+    .btn-scan {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 255, 157, 0.25));
+      border: 1px solid var(--cyan);
+      color: var(--text-bright);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    .btn-scan:hover {
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      color: #000;
+      box-shadow: 0 0 20px var(--cyan);
+    }
+
+    .btn-excel {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid var(--blue);
+      color: #93c5fd;
+    }
+
+    .btn-excel:hover:not(:disabled) {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.6);
+    }
+
+    button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Barra de Status de Varredura */
+    #status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      margin-bottom: 18px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    /* Cards Modulares de IP */
+    .ip-box {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-left: 4px solid var(--cyan);
+      border-radius: 10px;
+      padding: 22px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .ip-box:hover {
+      border-color: var(--border-glow);
+      box-shadow: 0 10px 35px rgba(0, 240, 255, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .ip-box.safe-border { border-left-color: var(--green); }
+    .ip-box.warn-border { border-left-color: var(--amber); }
+    .ip-box.danger-border { border-left-color: var(--crimson); }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .card-header h2 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    /* Badges de Status Futuristas */
+    .badge {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-safe {
+      background: rgba(0, 255, 157, 0.12);
+      color: var(--green);
+      border: 1px solid var(--green);
+      box-shadow: 0 0 10px var(--green-glow);
+    }
+
+    .badge-warn {
+      background: rgba(255, 184, 0, 0.12);
+      color: var(--amber);
+      border: 1px solid var(--amber);
+      box-shadow: 0 0 10px var(--amber-glow);
+    }
+
+    .badge-danger {
+      background: rgba(255, 0, 85, 0.15);
+      color: var(--crimson);
+      border: 1px solid var(--crimson);
+      box-shadow: 0 0 14px var(--crimson-glow);
+      animation: pulse-danger 1.5s infinite;
+    }
+
+    @keyframes pulse-danger {
+      0%, 100% { box-shadow: 0 0 10px var(--crimson-glow); }
+      50% { box-shadow: 0 0 22px var(--crimson); }
+    }
+
+    /* Mini-Widgets de Metadados */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .meta-item {
+      background: var(--card-inner);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 10px 14px;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .meta-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: var(--cyan);
+      opacity: 0.6;
+    }
+
+    .meta-item span {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .meta-item strong {
+      font-size: 14px;
+      color: var(--text-bright);
+      font-family: 'JetBrains Mono', monospace;
+      word-break: break-word;
+    }
+
+    /* Tabela de Relatórios */
+    .reports-panel {
+      background: var(--card-inner);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .reports-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .table-scroll {
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 6px;
+    }
+
+    .table-scroll::-webkit-scrollbar { width: 6px; }
+    .table-scroll::-webkit-scrollbar-track { background: #06090e; }
+    .table-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    .table-scroll::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+    
+    th {
+      background: #0f172a;
+      color: #94a3b8;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 10px 12px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      border-bottom: 1px solid var(--border-cyan);
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: top;
+      color: #cbd5e1;
+    }
+
+    tr:nth-child(even) td { background: rgba(255, 255, 255, 0.015); }
+    tr:hover td { background: rgba(0, 240, 255, 0.04); color: #fff; }
+
+    .tag-cat {
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      color: var(--cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-block;
+      margin: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- HUD Top Header -->
+  <header class="app-header">
+    <h1><span style="color:var(--cyan)">⚡</span> Rendimento Check</h1>
+    <div class="system-status">
+      <div class="status-dot"></div>
+      SOC ENGINE ACTIVE
+    </div>
+  </header>
+
+  <!-- Central de Controle -->
+  <div class="control-panel">
+    <div class="panel-label">
+      <span>🎯</span> Vetores de Consulta IP
+    </div>
+    <textarea id="ipList" rows="3" placeholder="Insira os IPs (ex: 187.122.58.197, 8.8.8.8, 1.1.1.1)">187.122.58.197, 8.8.8.8</textarea>
+    
+    <div class="action-bar">
+      <button id="btnConsultar" class="btn-scan" onclick="consultarIPs()">
+        <span>⚡</span> Executar Varredura
+      </button>
+      <button id="btnExcel" class="btn-excel" onclick="exportarExcel()" disabled>
+        <span>📊</span> Exportar Relatório (.xlsx)
+      </button>
+    </div>
+  </div>
+
+  <div id="status"></div>
+  <div id="resultados"></div>
+</div>
+
+<script>
+const API_KEY = "569d1feeeb21f8dc36c89d882cfb82e759ba962ed372e020305d16260431dd7c773561ee6ad711c9";
+
+const CATEGORIAS_PT = {
+  1: "Comprometimento de DNS",
+  2: "Envenenamento de DNS",
+  3: "Fraude em Pedidos",
+  4: "Ataque DDoS",
+  5: "Força Bruta FTP",
+  6: "Ping da Morte",
+  7: "Phishing",
+  8: "Fraude VoIP",
+  9: "Proxy Aberto",
+  10: "Spam na Web",
+  11: "Spam de E-mail",
+  12: "Spam em Blog",
+  13: "IP de VPN",
+  14: "Varredura de Portas (Port Scan)",
+  15: "Invasão / Hacking",
+  16: "Injeção de SQL (SQLi)",
+  17: "Spoofing",
+  18: "Força Bruta (Brute-Force)",
+  19: "Robô Malicioso (Bad Bot)",
+  20: "Host Comprometido",
+  21: "Ataque a Aplicação Web",
+  22: "Força Bruta SSH",
+  23: "Alvo IoT"
+};
+
+let dadosConsultados = [];
+
+async function consultarIPs() {
+  const rawInput = document.getElementById("ipList").value.trim();
+  const statusDiv = document.getElementById("status");
+  const resContainer = document.getElementById("resultados");
+  const btn = document.getElementById("btnConsultar");
+  const btnExcel = document.getElementById("btnExcel");
+
+  const ips = rawInput.split(/[\s,;]+/).filter(Boolean);
+  if (!ips.length) {
+    alert("Insira pelo menos um endereço IP.");
+    return;
+  }
+
+  btn.disabled = true;
+  btnExcel.disabled = true;
+  resContainer.innerHTML = "";
+  dadosConsultados = [];
+  
+  statusDiv.style.display = "block";
+  statusDiv.style.background = "rgba(0, 240, 255, 0.1)";
+  statusDiv.style.border = "1px solid var(--cyan)";
+  statusDiv.style.color = "var(--cyan)";
+  statusDiv.innerText = `[PROCESSO INICIADO] Varrendo inteligência de ${ips.length} IP(s)...`;
+
+  for (const ip of ips) {
+    try {
+      const targetUrl = `https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=365&verbose=true`;
+      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+
+      const response = await fetch(proxyUrl, {
+        method: "GET",
+        headers: {
+          "Key": API_KEY,
+          "Accept": "application/json"
+        }
+      });
+
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+
+      const json = await response.json();
+      dadosConsultados.push(json.data);
+      renderizarCard(json.data);
+    } catch (err) {
+      resContainer.innerHTML += `
+        <div class="ip-box danger-border">
+          <strong style="color: var(--crimson); font-family: 'JetBrains Mono';">[FALHA: ${ip}]</strong> 
+          <span style="color: #94a3b8;">${err.message}</span>
+        </div>
+      `;
+    }
+  }
+
+  statusDiv.style.background = "rgba(0, 255, 157, 0.1)";
+  statusDiv.style.border = "1px solid var(--green)";
+  statusDiv.style.color = "var(--green)";
+  statusDiv.innerText = `[CONCLUÍDO] Análise finalizada com sucesso.`;
+  btn.disabled = false;
+  
+  if (dadosConsultados.length > 0) {
+    btnExcel.disabled = false;
+  }
+}
+
+function renderizarCard(d) {
+  const container = document.getElementById("resultados");
+  const totalReports = d.totalReports || 0;
+  
+  let badgeHtml = "";
+  let borderClass = "";
+
+  if (totalReports === 0) {
+    badgeHtml = `<span class="badge badge-safe">✔ Seguro (0)</span>`;
+    borderClass = "safe-border";
+  } else if (totalReports >= 1 && totalReports <= 2) {
+    badgeHtml = `<span class="badge badge-warn">⚠️ Atenção (${totalReports})</span>`;
+    borderClass = "warn-border";
+  } else {
+    badgeHtml = `<span class="badge badge-danger">🚨 Urgência (${totalReports})</span>`;
+    borderClass = "danger-border";
+  }
+
+  let reportsSectionHtml = "";
+  if (d.reports && d.reports.length > 0) {
+    const rows = d.reports.map(r => {
+      const tags = (r.categories || []).map(c => `<span class="tag-cat">${CATEGORIAS_PT[c] || 'Cat ' + c}</span>`).join(" ");
+      return `
+        <tr>
+          <td style="font-family:'JetBrains Mono'; font-weight:600; color:#fff;">
+            User #${r.reporterId || 'Anon'}<br>
+            <small style="color:#64748b;">${r.reporterCountryCode || 'N/A'}</small>
+          </td>
+          <td style="font-family:'JetBrains Mono'; font-size:11px; white-space:nowrap; color:#94a3b8;">
+            ${r.reportedAt}
+          </td>
+          <td>${tags}</td>
+          <td style="color:#e2e8f0; font-family:'JetBrains Mono'; font-size:11.5px;">
+            ${r.comment || '<i style="color:#64748b;">Sem comentário informado</i>'}
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    reportsSectionHtml = `
+      <div class="reports-panel">
+        <div class="reports-title">
+          <span>Relatórios de Abuso</span>
+          <span style="color:#94a3b8; font-family:'JetBrains Mono';">${d.reports.length} registros</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 140px;">Origem</th>
+                <th style="width: 150px;">Data (UTC)</th>
+                <th style="width: 220px;">Vetor de Ataque</th>
+                <th>Detalhes / Payload</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else {
+    reportsSectionHtml = `
+      <div class="reports-panel" style="text-align: center; color: #64748b; font-size: 13px; padding: 16px;">
+        Nenhum registro de abuso recente encontrado para este endereço IP.
+      </div>
+    `;
+  }
+
+  const html = `
+    <div class="ip-box ${borderClass}">
+      <div class="card-header">
+        <h2>${d.ipAddress}</h2>
+        ${badgeHtml}
+      </div>
+      <div class="meta-grid">
+        <div class="meta-item"><span>Provedor (ISP)</span><strong>${d.isp || 'N/A'}</strong></div>
+        <div class="meta-item"><span>Tipo de Uso</span><strong>${d.usageType || 'N/A'}</strong></div>
+        <div class="meta-item"><span>Domínio</span><strong>${d.domain || 'N/A'}</strong></div>
+        <div class="meta-item"><span>País / Região</span><strong>${d.countryName || 'N/A'} (${d.countryCode || 'N/A'})</strong></div>
+        <div class="meta-item"><span>Score de Confiança</span><strong style="color:var(--cyan);">${d.abuseConfidenceScore}%</strong></div>
+        <div class="meta-item"><span>Fontes Distintas</span><strong>${d.numDistinctUsers}</strong></div>
+      </div>
+      ${reportsSectionHtml}
+    </div>
+  `;
+
+  container.innerHTML += html;
+}
+
+function exportarExcel() {
+  if (!dadosConsultados.length) return;
+
+  const wb = XLSX.utils.book_new();
+
+  // 1. Resumo por IP
+  const dadosResumo = dadosConsultados.map(d => {
+    let nivelAlerta = "Seguro";
+    if (d.totalReports >= 1 && d.totalReports <= 2) nivelAlerta = "Atenção";
+    else if (d.totalReports > 2) nivelAlerta = "Urgência";
+
+    return {
+      "Endereço IP": d.ipAddress,
+      "Nível de Alerta": nivelAlerta,
+      "Total de Denúncias": d.totalReports || 0,
+      "Score de Confiança (%)": d.abuseConfidenceScore || 0,
+      "Provedor (ISP)": d.isp || "N/A",
+      "Tipo de Conexão": d.usageType || "N/A",
+      "Domínio": d.domain || "N/A",
+      "País": `${d.countryName || 'N/A'} (${d.countryCode || 'N/A'})`,
+      "Hostnames": (d.hostnames || []).join(", ") || "N/A",
+      "Fontes Distintas": d.numDistinctUsers || 0
+    };
+  });
+
+  const wsResumo = XLSX.utils.json_to_sheet(dadosResumo);
+  XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo por IP");
+
+  // 2. Denúncias Detalhadas
+  const dadosDetalhados = [];
+  dadosConsultados.forEach(d => {
+    if (d.reports && d.reports.length > 0) {
+      d.reports.forEach(r => {
+        const catNomes = (r.categories || []).map(c => CATEGORIAS_PT[c] || `Cat ${c}`).join("; ");
+        dadosDetalhados.push({
+          "Endereço IP": d.ipAddress,
+          "Denunciante": `User #${r.reporterId || 'Anon'} (${r.reporterCountryCode || 'N/A'})`,
+          "Data/Hora (UTC)": r.reportedAt,
+          "Categorias de Ataque": catNomes,
+          "Comentário / Detalhes": r.comment || "Sem comentário"
+        });
+      });
+    } else {
+      dadosDetalhados.push({
+        "Endereço IP": d.ipAddress,
+        "Denunciante": "-",
+        "Data/Hora (UTC)": "-",
+        "Categorias de Ataque": "Nenhuma denúncia",
+        "Comentário / Detalhes": "IP sem relatórios de abuso no período"
+      });
+    }
+  });
+
+  const wsDetalhes = XLSX.utils.json_to_sheet(dadosDetalhados);
+  XLSX.utils.book_append_sheet(wb, wsDetalhes, "Denúncias Detalhadas");
+
+  const dataHoje = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `Rendimento_Check_${dataHoje}.xlsx`);
+}
+</script>
+
+</body>
+</html>
